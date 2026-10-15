@@ -19,7 +19,13 @@ if (!BOT_TOKEN || !CLIENT_ID) {
 const commands = [
   new SlashCommandBuilder()
     .setName('apikeydm')
-    .setDescription('Generate a premium NEXO API key and DM it to you')
+    .setDescription('Generate a premium NEXO API key and DM it to you or a specified user')
+    .addUserOption((option) =>
+      option
+        .setName('user')
+        .setDescription('The user to DM the key to (leave empty to DM yourself)')
+        .setRequired(false),
+    )
     .toJSON(),
 ];
 

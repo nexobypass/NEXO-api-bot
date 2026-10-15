@@ -161,18 +161,26 @@ client.on(Events.InteractionCreate, async (interaction) => {
   await interaction.deferReply({ ephemeral: true });
 
   try {
+    // Determine the target user: if the owner specified a user
+    // via the optional `user` option, DM the key to them. Otherwise
+    // DM it to the person who ran the command.
+    const targetUser = interaction.options.getUser('user') || interaction.user;
+    const isForOther = targetUser.id !== interaction.user.id;
+
     // Generate the key
-    const label = `Discord:${interaction.user.username} (${interaction.user.id})`;
+    const label = `Discord:${targetUser.username} (${targetUser.id})`;
     const key = await generateApiKey(label);
 
-    // Set cooldown
+    // Set cooldown (on the person who ran the command, not the target)
     cooldowns.set(interaction.user.id, now);
 
     // Build the DM embed
     const embed = new EmbedBuilder()
       .setColor(0xfb923c)
       .setTitle('🔑 Your NEXO API Key')
-      .setDescription('Here is your premium API key. Keep it private — anyone with this key can use the NEXO bypass API.')
+      .setDescription(isForOther
+        ? `You've been given a premium NEXO API key by **${interaction.user.username}**. Keep it private — anyone with this key can use the NEXO bypass API.`
+        : 'Here is your premium API key. Keep it private — anyone with this key can use the NEXO bypass API.')
       .addFields(
         { name: 'API Key', value: `\`${key}\``, inline: false },
         { name: 'Type', value: 'Premium', inline: true },
@@ -192,12 +200,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       .setFooter({ text: 'NEXO API · Powered by alysse.top' })
       .setTimestamp();
 
-    // Send the DM
-    await interaction.user.send({ embeds: [embed] });
+    // Send the DM to the target user
+    await targetUser.send({ embeds: [embed] });
 
-    // Confirm to the user in the channel (ephemeral)
+    // Confirm to the owner in the channel (ephemeral)
     await interaction.editReply({
-      content: '✅ API key generated and sent to your DMs! Check your messages.',
+      content: isForOther
+        ? `✅ API key generated and DM'd to **${targetUser.username}**.`
+        : '✅ API key generated and sent to your DMs! Check your messages.',
     });
   } catch (err) {
     console.error('apikeydm error:', err);
