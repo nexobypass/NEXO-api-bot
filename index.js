@@ -106,21 +106,45 @@ client.once(Events.ClientReady, (c) => {
   console.log(`✅ Bot logged in as ${c.user.tag}`);
 });
 
+// ─── Owner/admin IDs ───────────────────────────────────────
+// Set these in env vars. Only these users can run /apikeydm.
+//   OWNER_IDS — comma-separated Discord user IDs who can use the command
+// Leave empty to allow everyone (not recommended).
+const OWNER_IDS = (process.env.OWNER_IDS || '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+function isAuthorized(userId) {
+  // If no OWNER_IDS set, allow everyone (open mode).
+  // If OWNER_IDS is set, only allow listed users.
+  if (OWNER_IDS.length === 0) return true;
+  return OWNER_IDS.includes(userId);
+}
+
 // ─── Slash command: /apikeydm ──────────────────────────────
 // Generates a new premium API key and DMs it to the user who
 // ran the command. The key is inserted into the Turso database
 // (same DB the NEXO API uses), so it works immediately with
 // /api/bypass.
 //
-// Only usable in servers (guilds) — not in DMs — to prevent
-// abuse. Rate-limited to 1 use per user per hour via a simple
-// in-memory map.
+// Owner-only: only users listed in OWNER_IDS env var can run it.
+// Rate-limited to 1 use per user per hour via a simple in-memory map.
 const cooldowns = new Map(); // userId -> timestamp
 const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
   if (interaction.commandName !== 'apikeydm') return;
+
+  // Authorization check — only owner/admin IDs can use this
+  if (!isAuthorized(interaction.user.id)) {
+    await interaction.reply({
+      content: '❌ You are not authorized to use this command. Only the bot owner can generate API keys.',
+      ephemeral: true,
+    });
+    return;
+  }
 
   // Check cooldown
   const now = Date.now();
