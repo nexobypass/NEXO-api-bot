@@ -1,0 +1,14 @@
+{
+  "name": "nexo-api-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for NEXO API — generates and DMs API keys via /apikeydm",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "register": "node register-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}
